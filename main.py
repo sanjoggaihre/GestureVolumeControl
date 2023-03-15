@@ -13,8 +13,9 @@ def handTracking():
 
     #defining mediapipe library
     mpHands = mp.solutions.hands
-    print(type(mpHands))    #module type
+    # print(type(mpHands))    #module type
     # print(dir(mpHands))
+
     #Hands() fxn has parameters, which have default value
     hands = mpHands.Hands()
     # drawing the palm landmarks
@@ -31,14 +32,16 @@ def handTracking():
     dist = 0
     vol_bar = 200
     min_hand = 25
-    max_hand = 180
-    vol_per = 100
+    max_hand = 170
     hand_positions_array = []
+
     while True:
         success, img = cap.read()
         #we have image of (480*640)
+
         # mediapipe hands() only take rgb color
         imgRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
         results = hands.process(imgRGB)
         # print(results.multi_hand_landmarks) #print the landmarks location of the hand in dict format, if no hand is found returns None
         if results.multi_hand_landmarks: 
@@ -49,11 +52,11 @@ def handTracking():
                     #to convert landmarks value into pixel we multiply lm with height and width of the img
                     height, width, channel = img.shape
                     cx, cy = lm.x * width , lm.y * height
+                    
                     hand_positions_in_one_img.append([id, int(cx), int(cy)])
                     # print([id,cx,cy]) #this will display the landmark id with corresponding pixel value
                 
                 mpDraw.draw_landmarks(img, handlm, mpHands.HAND_CONNECTIONS)
-                # hand_positions.append(hand_positions_in_one_img)
                 hand_positions_array = np.array(hand_positions_in_one_img)  
                         
             if len(hand_positions_array)!= 0:
@@ -66,29 +69,33 @@ def handTracking():
                 dist = math.sqrt(math.pow(x2-x1,2)+math.pow(y2-y1,2))
                 # print(dist)
                 
-                min_vol, max_vol = volume.GetVolumeRange()[0:2]
-                #hand range 20-180, vol range -65 to 0
+                # min_vol, max_vol = volume.GetVolumeRange()[0:2]
+                # #hand range 25-170, vol range -65 to 0
 
-                #np.interp maps the range of [min_hand,max_hand] to range of [min_vol,max_vol]
-                vol = np.interp(dist,[min_hand,max_hand],[min_vol,max_vol])
-                volume.SetMasterVolumeLevel(vol, None) #it set the volume of the computer
                 
-                #vol_per is used to show percentage of volume
+                #np.interp maps the range of [min_hand,max_hand] to range of [0,100]
+                #also vol_per is used to show percentage of volume
                 vol_per = np.interp(dist,[min_hand,max_hand],[0,100])
+                volume.SetMasterVolumeLevelScalar(vol_per/100, None) #it set the volume of the computer and it takes the parameter within the range of [0,1]
                 
                 #vol_bar is used to show volume box
                 vol_bar = np.interp(dist,[min_hand,max_hand],[400,200])
                         
                 if dist<min_hand:
                     cv2.circle(img, (c1,c2),10,(0,0,255),cv2.FILLED)                
+        
+        #used to find the initial volume of the system
+        vol_per = volume.GetMasterVolumeLevelScalar()*100
+        vol_bar = np.interp(vol_per,[0,100],[400,200])
 
-        cv2.rectangle(img,(40,400), (80,200),(0,255,0),2)
-
-        #displaying volume bar
-        cv2.rectangle(img,(40,400), (80,int(vol_bar)),(0,255,0),cv2.FILLED)
+        #displaying area of the volume bar
+        cv2.rectangle(img,(40,400), (80,200),(0,0,0),2)
 
         #displaying volume percentage
         cv2.putText(img, f'{int(vol_per)} %' , (100,400),cv2.FONT_HERSHEY_COMPLEX,2,(255,0,0),2)
+
+        #displaying volume bar
+        cv2.rectangle(img,(40,400), (80,int(vol_bar)),(0,255,0),cv2.FILLED)
 
         #displaying fps
         c_time = time.time()
