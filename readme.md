@@ -1,0 +1,1 @@
+In this project i use the mediapipe library to track the hand landmarks. Then i use pycaw library to change the volume of the system.Then with the tip of index finger and thumb finger, we can control the volume of the system.
